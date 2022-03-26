@@ -26,6 +26,8 @@ class MainFragment : MainBaseFragment() {
         encryptAdapter.decryptFile(file = file.file, decryptDirectory = decryptDirectory)
         val newList = mainAdapter.currentList.toMutableList()
         newList.remove(file)
+        file.file.delete()
+        newList.forEachIndexed { idx, item -> item.id = idx }
         updateList(newList)
     }
 

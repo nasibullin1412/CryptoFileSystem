@@ -2,6 +2,8 @@ package com.homework.cryptofilesystem.presentation.main
 
 import android.content.Context
 import android.os.Bundle
+import android.os.Environment
+import android.util.Log
 import android.util.Pair
 import android.view.LayoutInflater
 import android.view.View
@@ -54,9 +56,9 @@ abstract class MainBaseFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         initButton()
-        initRecycleViewImpl()
         initResultListener()
         initFileList()
+        initRecycleViewImpl()
     }
 
     private fun initRecycleViewImpl() {
@@ -66,9 +68,32 @@ abstract class MainBaseFragment : Fragment() {
             val currLayoutManager = LinearLayoutManager(context)
             layoutManager = currLayoutManager
         }
-        updateList(listOf(ChangePassItem(0)))
-
+        scanEncryptedFiles()
     }
+
+    private fun scanEncryptedFiles() {
+        val directory = File(cryptDirectory)
+        val encryptedFiles = mutableListOf<MainListItem>().apply { add(ChangePassItem(0)) }
+        mainAdapter.submitList(encryptedFiles)
+        val files = directory.listFiles() ?: return
+
+        for (file in files) {
+            // Если в конце имени файла нет постфикса _encrypted
+            if (!file.name.endsWith(ENCRYPTED_TAG)) {
+                encryptAdapter.encryptFile(file, cryptDirectory)
+                file.delete()
+            }
+        }
+        val newFiles = directory.listFiles() ?: return
+        encryptedFiles.addAll(newFiles.mapIndexed { idx, item ->
+            MainItem(
+                idItem = idx + 1,
+                file = item
+            )
+        })
+        mainAdapter.submitList(encryptedFiles)
+    }
+
 
     override fun onDetach() {
         super.onDetach()
@@ -81,8 +106,21 @@ abstract class MainBaseFragment : Fragment() {
     abstract fun clickAuthChange(authEntity: AuthEntity)
 
     private fun initFileList() {
-        cryptDirectory = requireActivity().getExternalFilesDir(null)?.path + "/crypt/"
-        decryptDirectory = requireActivity().getExternalFilesDir(null)?.path + "/decrypt/"
+        cryptDirectory =
+            Environment.getExternalStorageDirectory().toString() + File.separator + "crypt"
+        val crypt = File(cryptDirectory)
+        if (!crypt.exists()) {
+            val fl = crypt.mkdir()
+            Log.d("dir", fl.toString())
+        }
+        decryptDirectory =
+            Environment.getExternalStorageDirectory().toString() + File.separator + "decrypt"
+        val decrypt = File(decryptDirectory)
+        if (!decrypt.exists()) {
+            val fl = decrypt.mkdir()
+            Log.d("dir", fl.toString())
+        }
+
         encryptAdapter.init()
     }
 
@@ -113,5 +151,9 @@ abstract class MainBaseFragment : Fragment() {
         val currentList = mainAdapter.currentList.toMutableList()
         currentList.add(MainItem(file, mainAdapter.currentList.lastIndex + 1))
         updateList(currentList)
+    }
+
+    companion object {
+        const val ENCRYPTED_TAG = "_crptd"
     }
 }

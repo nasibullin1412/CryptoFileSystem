@@ -35,7 +35,7 @@ class EncryptAdapter {
         val encryptedFile = encFile.absolutePath
         var bRes = false
         val crypt = encFile.parentFile
-        if (crypt != null && !crypt.exists()) {
+        if (!crypt.exists()) {
             val fl = crypt.mkdir()
             Log.d(" crypt dir", fl.toString())
         }
